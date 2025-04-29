@@ -4,9 +4,10 @@ from dotenv import load_dotenv
 import os
 import google.generativeai as genai
 from fastapi.middleware.cors import CORSMiddleware
-from ..crew.tasks import run_crew
+from crew.tasks import run_crew
 import traceback
 from langdetect import detect, DetectorFactory
+from mangum import Mangum
 
 # Ensure consistent language detection
 DetectorFactory.seed = 0
@@ -33,9 +34,9 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "https://your-frontend-domain.vercel.app"
+        "http://localhost:3000",  # For local testing
+        "http://localhost:5173",  # For Vite local dev (if applicable)
+        "https://your-frontend-domain.vercel.app"  # Replace with your frontend URL after deployment
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -77,3 +78,6 @@ async def health_check():
 @app.get("/debug")
 async def debug():
     return {"message": "Backend is running"}
+
+# Wrap FastAPI app with Mangum for Vercel serverless
+handler = Mangum(app, lifespan="off")
