@@ -17,11 +17,13 @@ load_dotenv()
 # Get API keys from environment variables
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY not found in environment variables")
+    print("Error: GEMINI_API_KEY not found in environment variables. Please set it in your hosting platform's settings.")
+    exit(1)
 
 API_KEY = os.getenv("API_KEY")
 if not API_KEY:
-    raise ValueError("API_KEY not found in environment variables")
+    print("Error: API_KEY not found in environment variables. Please set it in your hosting platform's settings.")
+    exit(1)
 
 # Configure Gemini API
 genai.configure(api_key=GEMINI_API_KEY)
@@ -32,11 +34,7 @@ app = FastAPI()
 # Add CORS middleware for production
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",  # For local testing
-        "http://localhost:5173",  # For Vite local dev (if applicable)
-        "https://your-frontend-domain.vercel.app"  # Replace with your frontend URL after deployment
-    ],
+    allow_origins=["*"],  # Allow all origins for testing; replace with specific domains in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
