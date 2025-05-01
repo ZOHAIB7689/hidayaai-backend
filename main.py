@@ -85,3 +85,6 @@ async def health_check():
 @app.get("/debug")
 async def debug():
     return {"message": "Backend is running"}
+@app.get("/")
+def root():
+    return {"status": "ok"}
