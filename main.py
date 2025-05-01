@@ -7,6 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from crew.tasks import run_crew
 import traceback
 from langdetect import detect, DetectorFactory
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Ensure consistent language detection
 DetectorFactory.seed = 0
@@ -17,12 +22,12 @@ load_dotenv()
 # Get API keys from environment variables
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 if not GEMINI_API_KEY:
-    print("Error: GEMINI_API_KEY not found in environment variables. Please set it in your hosting platform's settings.")
+    logger.error("GEMINI_API_KEY not found in environment variables.")
     exit(1)
 
 API_KEY = os.getenv("API_KEY")
 if not API_KEY:
-    print("Error: API_KEY not found in environment variables. Please set it in your hosting platform's settings.")
+    logger.error("API_KEY not found in environment variables.")
     exit(1)
 
 # Configure Gemini API
@@ -31,10 +36,10 @@ genai.configure(api_key=GEMINI_API_KEY)
 # Initialize FastAPI app
 app = FastAPI()
 
-# Add CORS middleware for production
+# Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for testing; replace with specific domains in production
+    allow_origins=["*"],  # For testing
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]
@@ -57,15 +62,20 @@ async def ask_question(req: QuestionRequest):
         # Detect language
         try:
             lang = detect(user_input)
-        except:
+        except Exception as e:
+            logger.warning(f"Language detection failed: {str(e)}")
             lang = "en"
-        result = run_crew(user_input)
-        if not result:
-            raise HTTPException(status_code=500, detail="No response from crew")
-        return {"answer": result, "language": lang}
+        # Run crew with error handling
+        try:
+            result = run_crew(user_input)
+            if not result:
+                raise HTTPException(status_code=500, detail="No response from crew")
+            return {"answer": result, "language": lang}
+        except Exception as e:
+            logger.error(f"Error in run_crew: {str(e)}\n{traceback.format_exc()}")
+            raise HTTPException(status_code=500, detail=f"Error processing request: {str(e)}")
     except Exception as e:
-        print(f"Error in /ask endpoint: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"Error in /ask endpoint: {str(e)}\n{traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 @app.get("/health")
